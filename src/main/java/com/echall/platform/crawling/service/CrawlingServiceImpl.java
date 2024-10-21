@@ -97,6 +97,11 @@ public class CrawlingServiceImpl implements CrawlingService {
 		return cnnResponseDto;
 	}
 
+	/**
+	 * 이 기사 크롤링 과정에서 특정 요소들이 일부 빠져 있어도 크롤링 자체는 되고 있지만 원하는 요소들이 빠지게 되면 다른 컨텐츠들에 비해
+	 * 다소 아쉬운 부분이 보여서 이런 부분을 체크하는 로직을 할 지 혹은 입력하는 사람이 제대로 확인하고 사용하는 현재 방식을 유지할지
+	 * 고민중입니다
+	 */
 	@Override
 	public CrawlingResponseDto.CrawlingContentResponseDto fetchArticle(String url) throws IOException {
 		Document doc = Jsoup.connect(url).get();
@@ -240,6 +245,10 @@ public class CrawlingServiceImpl implements CrawlingService {
 				.getText();
 			if (text != null && !text.isEmpty()) {
 				scripts.add(
+					/**
+					 * 이 부분에서 null 로 한국어 부분을 저장하고 이후에 영어 스크립트를 다시 읽어 번역하고 영어 문자 비율에 맞추어
+					 * 한국어를 분할해서 저장하는 방식을 생각했었습ㄴ디ㅏ
+					 */
 					YoutubeScript.of(
 						startTime, endtime - startTime,
 						text, translateService.translate(text, "en", "ko")

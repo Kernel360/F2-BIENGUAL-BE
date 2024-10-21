@@ -131,6 +131,9 @@ public class UserEntity extends BaseEntity {
 		this.birth = userUpdateRequest.birth() == null ? this.birth : userUpdateRequest.birth();
 	}
 
+	/*
+	user.updateUserBookmark() 메서드입니다!
+	 */
 	public void updateUserBookmark(BookmarkEntity bookmark) {
 		this.bookmarks.add(bookmark);
 	}

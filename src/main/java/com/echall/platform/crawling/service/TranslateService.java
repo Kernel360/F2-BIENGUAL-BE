@@ -77,6 +77,9 @@ public class TranslateService {
 		}
 	}
 
+	/**
+	 *  스크립트가 특수 문자를 포함하는 경우 JSON으로 타입 변환하는 메서드
+	 */
 	private String escapeProblematicCharacters(String text) {
 		Map<Character, String> replacements = new HashMap<>();
 		replacements.put('\\', "\\\\");

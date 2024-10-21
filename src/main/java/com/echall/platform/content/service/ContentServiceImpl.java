@@ -176,6 +176,10 @@ public class ContentServiceImpl implements ContentService {
 		return categoryRepository.save(dto.toCategoryEntity());
 	}
 
+	/**
+	 * 현재 로직상으로는 DB를 조회해서 이미 크롤링했는지만 검증하고 있는데 여기서 유튜브의 경우 특정 채널만 받을 수 있도록 한다던지
+	 * CNN의 경우 태그가 모두 있는지 등을 추가할 지 고민중 입니다
+	 */
 	private void verifyCrawling(String url) {
 		if (contentRepository.existsByUrl(url)) {
 			throw new CommonException(CRAWLING_ALREADY_DONE);
