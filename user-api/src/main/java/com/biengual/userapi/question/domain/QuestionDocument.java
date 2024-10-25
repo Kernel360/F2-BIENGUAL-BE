@@ -1,8 +1,7 @@
-package com.biengual.userapi.question.domain.entity;
+package com.biengual.userapi.question.domain;
 
 import org.springframework.data.mongodb.core.mapping.Document;
 
-import com.biengual.userapi.question.domain.enums.QuestionType;
 import com.biengual.userapi.util.MongoBaseDocument;
 
 import lombok.AccessLevel;

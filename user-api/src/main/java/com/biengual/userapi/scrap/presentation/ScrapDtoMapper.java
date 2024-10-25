@@ -16,7 +16,7 @@ import com.biengual.userapi.scrap.domain.ScrapInfo;
  * of~ : Response <- Info
  * build~ :  Entity <-> Info, Info <-> Info
  * <p>
- * BookmarkDto 와 Info 간의 Mapper
+ * ScrapDto 와 Info, Command 간의 Mapper
  *
  * @author 김영래
  */

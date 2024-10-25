@@ -49,6 +49,8 @@ spring:
 
 # Swagger
 springdoc:
+  use-fqn: true # swagger 가 패키지를 포함해서 관리하게 하여 다른 디렉토리의 같은 클래스명을 구분하게 하기 위함
+
   swagger-ui:
     path: /api-info  # swagger-ui 접근 경로에 대한 별칭, 해당 주소로 접속해도 http://localhost:8080/swagger-ui/index.html로 리다이렉션 됨.
 

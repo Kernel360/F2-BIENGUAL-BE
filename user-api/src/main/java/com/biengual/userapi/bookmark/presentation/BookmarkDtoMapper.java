@@ -16,7 +16,7 @@ import com.biengual.userapi.oauth2.domain.info.OAuth2UserPrincipal;
  * of~ : Response <- Info
  * build~ :  Entity <-> Info, Info <-> Info
  *
- * BookmarkDto 와 Info 간의 Mapper
+ * BookmarkDto 와 Info, Command 간의 Mapper
  *
  * @author 김영래
  */

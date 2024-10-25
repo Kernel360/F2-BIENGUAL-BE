@@ -1,8 +1,7 @@
-package com.biengual.userapi.question.service;
+package com.biengual.userapi.question.infrastructure;
 
 import static com.biengual.userapi.message.error.code.ContentErrorCode.*;
-import static com.biengual.userapi.message.error.code.QuestionErrorCode.*;
-import static com.biengual.userapi.question.domain.entity.QuestionDocument.*;
+import static com.biengual.userapi.question.domain.QuestionDocument.*;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -13,44 +12,40 @@ import java.util.Random;
 import java.util.Set;
 
 import org.bson.types.ObjectId;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
+import com.biengual.userapi.annotation.DataProvider;
 import com.biengual.userapi.content.domain.entity.ContentDocument;
 import com.biengual.userapi.content.domain.entity.ContentEntity;
 import com.biengual.userapi.content.domain.enums.ContentStatus;
 import com.biengual.userapi.content.repository.ContentRepository;
 import com.biengual.userapi.content.repository.ContentScriptRepository;
 import com.biengual.userapi.message.error.exception.CommonException;
-import com.biengual.userapi.question.domain.dto.QuestionRequestDto;
-import com.biengual.userapi.question.domain.dto.QuestionResponseDto;
-import com.biengual.userapi.question.domain.entity.QuestionDocument;
-import com.biengual.userapi.question.domain.enums.QuestionType;
-import com.biengual.userapi.question.repository.QuestionRepository;
+import com.biengual.userapi.question.domain.QuestionCommand;
+import com.biengual.userapi.question.domain.QuestionDocument;
+import com.biengual.userapi.question.domain.QuestionRepository;
+import com.biengual.userapi.question.domain.QuestionStore;
+import com.biengual.userapi.question.domain.QuestionType;
 
 import lombok.RequiredArgsConstructor;
 
-@Service
+@DataProvider
 @RequiredArgsConstructor
-public class QuestionServiceImpl implements QuestionService {
+public class QuestionStoreImpl implements QuestionStore {
 	private final QuestionRepository questionRepository;
 	private final ContentRepository contentRepository;
 	private final ContentScriptRepository contentScriptRepository;
 
 	@Override
-	@Transactional
-	public QuestionResponseDto.QuestionCreateResponseDto createQuestion(
-		Long contentId, QuestionRequestDto.QuestionCreateRequestDto requestDto
-	) {
+	public void createQuestion(QuestionCommand.Create command) {
 		Random random = new Random();
 		Set<Integer> randomIdxes = new HashSet<>();
 		List<String> questionIds = new ArrayList<>();
 		List<String> randomScripts = new ArrayList<>();
 		List<String> randomKoScripts = new ArrayList<>();
 
-		ContentDocument contentDocument = getContentDocument(contentId);
+		ContentDocument contentDocument = this.getContentDocument(command.contentId());
 
-		while (randomIdxes.size() < requestDto.questionNumOfBlank() + requestDto.questionNumOfOrder()) {
+		while (randomIdxes.size() < command.questionNumOfBlank() + command.questionNumOfOrder()) {
 			randomIdxes.add(random.nextInt(contentDocument.getScripts().size()));
 		}
 
@@ -61,40 +56,16 @@ public class QuestionServiceImpl implements QuestionService {
 
 		int start = 0;
 		// make blank question
-		questionIds.addAll(makeBlankQuestion(randomScripts, randomKoScripts, requestDto.questionNumOfBlank()));
-		start += requestDto.questionNumOfBlank();
+		questionIds.addAll(makeBlankQuestion(randomScripts, randomKoScripts, command.questionNumOfBlank()));
+		start += command.questionNumOfBlank();
 
 		// make word order question
 		questionIds.addAll(
-			makeWordOrderQuestion(randomScripts, randomKoScripts, start, requestDto.questionNumOfOrder()));
+			makeWordOrderQuestion(randomScripts, randomKoScripts, start, command.questionNumOfOrder()));
 
 		// update QuestionIds
 		contentDocument.updateQuestionIds(questionIds);
 		contentScriptRepository.save(contentDocument);
-
-		return new QuestionResponseDto.QuestionCreateResponseDto(questionIds);
-	}
-
-	@Override
-	@Transactional(readOnly = true)
-	public List<QuestionResponseDto.QuestionViewResponseDto> getQuestions(Long contentId) {
-		ContentDocument contentDocument = getContentDocument(contentId);
-		List<String> questionDocumentIds = contentDocument.getQuestionIds();
-		List<QuestionResponseDto.QuestionViewResponseDto> questions = new ArrayList<>();
-
-		for (String questionDocumentId : questionDocumentIds) {
-			QuestionDocument questionDocument = questionRepository.findById(new ObjectId(questionDocumentId))
-				.orElseThrow(() -> new CommonException(QUESTION_NOT_FOUND));
-			questions.add(
-				new QuestionResponseDto.QuestionViewResponseDto(
-					questionDocument.getQuestion(),
-					questionDocument.getQuestionKo(),
-					questionDocument.getAnswer(),
-					questionDocument.getType()
-				)
-			);
-		}
-		return questions;
 	}
 
 	// Internal Methods ------------------------------------------------------------------------------------------------

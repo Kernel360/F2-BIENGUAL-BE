@@ -55,10 +55,10 @@ public class BookmarkApiController {
 		Long contentId
 	) {
 		BookmarkCommand.GetByContents command = bookmarkDtoMapper.doGetByContents(contentId, principal);
-		BookmarkResponseDto.ContentListRes contentListRes
+		BookmarkResponseDto.ContentListRes response
 			= bookmarkDtoMapper.ofContentListRes(bookmarkFacade.getBookmarks(command));
 
-		return ResponseEntityFactory.toResponseEntity(BOOKMARK_VIEW_SUCCESS, contentListRes);
+		return ResponseEntityFactory.toResponseEntity(BOOKMARK_VIEW_SUCCESS, response);
 	}
 
 	@GetMapping("/view")
