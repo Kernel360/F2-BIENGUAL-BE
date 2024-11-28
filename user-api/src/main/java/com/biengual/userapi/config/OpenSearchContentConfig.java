@@ -36,7 +36,7 @@ public class OpenSearchContentConfig {
                 // TODO: 성능 부족하면 샤드, 레플리카 추가해야 하는지 고려
                 IndexSettings settings = new IndexSettings.Builder()
                     .numberOfShards("1") // Set number of shards
-                    .numberOfReplicas("1") // Set number of replicas
+                    .numberOfReplicas("0") // Set number of replicas
                     .refreshInterval(new Time.Builder().time("30s").build())
                     .analysis(a -> a
                         .analyzer("nori_analyzer", na -> na
