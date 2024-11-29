@@ -3,6 +3,7 @@ package com.biengual.userapi.config;
 import static com.biengual.core.constant.ServiceConstant.*;
 import static com.biengual.core.response.error.code.SearchContentErrorCode.*;
 
+import lombok.extern.slf4j.Slf4j;
 import org.opensearch.client.opensearch.OpenSearchClient;
 import org.opensearch.client.opensearch._types.Time;
 import org.opensearch.client.opensearch._types.mapping.TypeMapping;
@@ -15,6 +16,7 @@ import com.biengual.core.response.error.exception.CommonException;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 
+@Slf4j
 @Configuration
 @RequiredArgsConstructor
 public class OpenSearchContentConfig {
@@ -75,6 +77,7 @@ public class OpenSearchContentConfig {
                 client.indices().create(createIndexRequest);
             }
         } catch (Exception e) {
+            log.error(e.getMessage());
             throw new CommonException(SEARCH_CONTENT_SAVE_FAILED);
         }
     }
