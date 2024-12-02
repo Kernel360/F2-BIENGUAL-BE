@@ -59,3 +59,4 @@ docker-compose.yml
 /glove.6B.50d.txt
 /word2vec.test.txt
 /word2vec.txt
+/image
