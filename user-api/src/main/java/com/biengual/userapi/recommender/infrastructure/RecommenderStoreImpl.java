@@ -1,52 +1,33 @@
 package com.biengual.userapi.recommender.infrastructure;
 
-import static com.biengual.core.response.error.code.ContentErrorCode.*;
+import com.biengual.core.annotation.DataProvider;
+import com.biengual.core.domain.document.content.ContentDocument;
+import com.biengual.core.domain.entity.recommender.BookmarkRecommenderEntity;
+import com.biengual.core.response.error.exception.CommonException;
+import com.biengual.core.util.PeriodUtil;
+import com.biengual.userapi.bookmark.domain.BookmarkCustomRepository;
+import com.biengual.userapi.content.domain.ContentCustomRepository;
+import com.biengual.userapi.content.domain.ContentDocumentRepository;
+import com.biengual.userapi.recommender.domain.BookmarkRecommenderRepository;
+import com.biengual.userapi.recommender.domain.RecommenderInfo;
+import com.biengual.userapi.recommender.domain.RecommenderStore;
+import lombok.RequiredArgsConstructor;
+import org.bson.types.ObjectId;
 
 import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.time.LocalTime;
 import java.util.List;
 
-import org.bson.types.ObjectId;
-
-import com.biengual.core.annotation.DataProvider;
-import com.biengual.core.domain.document.content.ContentDocument;
-import com.biengual.core.domain.entity.recommender.BookmarkRecommenderEntity;
-import com.biengual.core.domain.entity.recommender.CategoryRecommenderEntity;
-import com.biengual.core.response.error.exception.CommonException;
-import com.biengual.core.util.PeriodUtil;
-import com.biengual.userapi.bookmark.domain.BookmarkCustomRepository;
-import com.biengual.userapi.category.domain.CategoryCustomRepository;
-import com.biengual.userapi.content.domain.ContentCustomRepository;
-import com.biengual.userapi.content.domain.ContentDocumentRepository;
-import com.biengual.userapi.recommender.domain.BookmarkRecommenderRepository;
-import com.biengual.userapi.recommender.domain.CategoryRecommenderRepository;
-import com.biengual.userapi.recommender.domain.RecommenderCustomRepository;
-import com.biengual.userapi.recommender.domain.RecommenderInfo;
-import com.biengual.userapi.recommender.domain.RecommenderStore;
-
-import lombok.RequiredArgsConstructor;
+import static com.biengual.core.response.error.code.ContentErrorCode.CONTENT_NOT_FOUND;
 
 @DataProvider
 @RequiredArgsConstructor
 public class RecommenderStoreImpl implements RecommenderStore {
-    private final CategoryRecommenderRepository categoryRecommenderRepository;
     private final BookmarkRecommenderRepository bookmarkRecommenderRepository;
-    private final CategoryCustomRepository categoryCustomRepository;
-    private final RecommenderCustomRepository recommenderCustomRepository;
     private final BookmarkCustomRepository bookmarkCustomRepository;
     private final ContentDocumentRepository contentDocumentRepository;
     private final ContentCustomRepository contentCustomRepository;
-
-    @Override
-    public void createAndUpdateCategoryRecommender() {
-        // CategoryRecommender 에 추가되지 않은 카테고리 있는지 확인 및 추가
-        this.createdCategoryRecommender();
-
-        // CategoryRecommender 의 similarCategoryIds 업데이트
-        recommenderCustomRepository.updateCategoryRecommender();
-    }
 
     @Override
     public void createLastWeekBookmarkRecommender() {
@@ -83,22 +64,6 @@ public class RecommenderStoreImpl implements RecommenderStore {
     }
 
     // Internal Methods=================================================================================================
-    private void createdCategoryRecommender() {
-        List<Long> notUpdatedCategoryIds = categoryCustomRepository.findAllCategoryIds()
-            .stream()
-            .filter(id -> !categoryRecommenderRepository.existsByCategoryId(id))
-            .toList();
-
-        if (!notUpdatedCategoryIds.isEmpty()) {
-            List<CategoryRecommenderEntity> categoryRecommenderEntities =
-                notUpdatedCategoryIds
-                    .stream()
-                    .map(CategoryRecommenderEntity::createdByCategoryId)
-                    .toList();
-
-            categoryRecommenderRepository.saveAll(categoryRecommenderEntities);
-        }
-    }
 
     private ContentDocument getContentDocument(Long scriptIndex) {
         String mongoId = contentCustomRepository.findMongoIdByContentId(scriptIndex);

@@ -14,4 +14,6 @@ public interface LearningStore {
     void recordRecentLearningHistory(LearningCommand.RecordLearningRate command);
 
     void recordCategoryLearningHistory(LearningCommand.RecordLearningRate command, ContentEntity content);
+
+    void updateCategoryLearningProgress(LearningCommand.RecordLearningRate command, ContentEntity content);
 }

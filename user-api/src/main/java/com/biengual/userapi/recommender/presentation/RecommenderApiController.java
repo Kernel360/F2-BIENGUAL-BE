@@ -26,22 +26,6 @@ import lombok.RequiredArgsConstructor;
 public class RecommenderApiController {
     private final RecommenderService recommenderService;
 
-    @PutMapping("/category")
-    @Operation(summary = "카테고리 추천 시스템 업데이트", description = "카테고리 추천 시스템을 업데이트 합니다")
-    @ApiResponses(value = {
-        @ApiResponse(responseCode = "200", description = "카테고리 추천 시스템 업데이트 성공",
-            content = {
-                @Content(mediaType = "application/json", schema = @Schema(implementation = SwaggerVoidReturn.class))
-            }
-        ),
-        @ApiResponse(responseCode = "500", description = "서버 에러", content = @Content(mediaType = "application/json"))
-    })
-    public ResponseEntity<Object> updateCategoryRecommender() {
-        recommenderService.updateCategoryRecommender();
-
-        return ResponseEntityFactory.toResponseEntity(RECOMMENDER_UPDATE_SUCCESS);
-    }
-
     @PutMapping("/bookmark")
     @Operation(summary = "북마크 추천 시스템 업데이트", description = "북마크 추천 시스템을 업데이트 합니다")
     @ApiResponses(value = {

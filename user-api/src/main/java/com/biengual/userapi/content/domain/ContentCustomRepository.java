@@ -1,50 +1,33 @@
 package com.biengual.userapi.content.domain;
 
-import static com.biengual.core.constant.RestrictionConstant.*;
-import static com.biengual.core.domain.entity.content.QContentEntity.*;
-import static com.biengual.core.domain.entity.paymenthistory.QPaymentContentHistoryEntity.*;
-import static com.biengual.core.domain.entity.scrap.QScrapEntity.*;
-import static com.biengual.core.response.error.code.ContentErrorCode.*;
-
-import java.lang.reflect.Field;
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import java.util.Objects;
-
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
-import org.springframework.data.support.PageableExecutionUtils;
-import org.springframework.stereotype.Repository;
-
 import com.biengual.core.domain.document.content.ContentSearchDocument;
 import com.biengual.core.domain.entity.content.QContentEntity;
 import com.biengual.core.enums.ContentStatus;
 import com.biengual.core.enums.ContentType;
 import com.biengual.core.response.error.exception.CommonException;
 import com.biengual.userapi.recommender.domain.RecommenderInfo;
-import com.querydsl.core.types.Expression;
-import com.querydsl.core.types.Order;
-import com.querydsl.core.types.OrderSpecifier;
-import com.querydsl.core.types.Path;
-import com.querydsl.core.types.Predicate;
-import com.querydsl.core.types.Projections;
-import com.querydsl.core.types.dsl.BooleanExpression;
-import com.querydsl.core.types.dsl.CaseBuilder;
-import com.querydsl.core.types.dsl.DateTimePath;
-import com.querydsl.core.types.dsl.Expressions;
-import com.querydsl.core.types.dsl.NumberExpression;
-import com.querydsl.core.types.dsl.NumberPath;
-import com.querydsl.core.types.dsl.PathBuilder;
+import com.querydsl.core.types.*;
+import com.querydsl.core.types.dsl.*;
 import com.querydsl.jpa.JPAExpressions;
 import com.querydsl.jpa.impl.JPAQuery;
 import com.querydsl.jpa.impl.JPAQueryFactory;
-
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.support.PageableExecutionUtils;
+import org.springframework.stereotype.Repository;
+
+import java.lang.reflect.Field;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.util.*;
+
+import static com.biengual.core.constant.RestrictionConstant.PERIOD_FOR_POINT_CONTENT_ACCESS;
+import static com.biengual.core.domain.entity.content.QContentEntity.contentEntity;
+import static com.biengual.core.domain.entity.paymenthistory.QPaymentContentHistoryEntity.paymentContentHistoryEntity;
+import static com.biengual.core.domain.entity.scrap.QScrapEntity.scrapEntity;
+import static com.biengual.core.response.error.code.ContentErrorCode.CONTENT_SORT_COL_NOT_FOUND;
 
 @Repository
 @RequiredArgsConstructor
@@ -205,75 +188,33 @@ public class ContentCustomRepository {
             .fetchOne();
     }
 
-    // 카테고리에 해당하는 컨텐츠들을 리턴하기 위한 쿼리
-    public List<RecommenderInfo.Preview> findCustomizedContentsByCategories(Long userId, List<Long> similarCategories) {
-        // 1. CASE 문을 사용하여 리스트의 순서를 보장
-        CaseBuilder.Cases<Integer, NumberExpression<Integer>> caseBuilder = new CaseBuilder()
-            .when(contentEntity.category.id.eq(similarCategories.get(0))).then(0);
-
-        for (int i = 1; i < similarCategories.size() && i < 3; i++) {
-            caseBuilder.when(contentEntity.category.id.eq(similarCategories.get(i))).then(i);
-        }
-        NumberExpression<Integer> orderByClause = caseBuilder.otherwise(Expressions.asNumber(similarCategories.size()));
-
-        // 2. 각 카테고리당 최대 3개의 콘텐츠를 가져옴
-        List<RecommenderInfo.Preview> previews = queryFactory
-            .select(
-                Projections.constructor(
-                    RecommenderInfo.Preview.class,
-                    contentEntity.id,
-                    contentEntity.title,
-                    contentEntity.s3Url,
-                    contentEntity.contentType,
-                    contentEntity.category.name,
-                    contentEntity.contentLevel,
-                    getIsPointRequiredByUserIdAndContent(userId, contentEntity.id, contentEntity.createdAt)
-                )
-            )
+    // 입력 Category를 가지는 Content Id를 조회수 순으로 최대 limit 만큼 조회하는 쿼리
+    public List<Long> findPopularContentIdsInCategoryIdsWithLimit(List<Long> categoryIds, int limit) {
+        return queryFactory
+            .select(contentEntity.id)
             .from(contentEntity)
-            .innerJoin(scrapEntity)
-            .on(contentEntity.id.eq(scrapEntity.content.id))
-            .where(contentEntity.category.id.in(similarCategories))
-            .groupBy(contentEntity.id)
-            .orderBy(orderByClause.asc(), contentEntity.hits.desc(), scrapEntity.count().desc())
-            .limit(similarCategories.size() * 3L) // 각 카테고리당 최대 3개씩 가져옴
+            .where(
+                contentEntity.category.id.in(categoryIds)
+                    .and(contentEntity.contentStatus.eq(ContentStatus.ACTIVATED))
+            )
+            .orderBy(contentEntity.hits.desc())
+            .limit(limit)
             .fetch();
-
-        // 3. 결과가 9개 미만일 경우 랜덤한 컨텐츠 추가
-        if (previews.size() < 9) {
-            // 이미 선택된 콘텐츠의 ID를 수집
-            List<Long> selectedContentIds = previews.stream()
-                .map(RecommenderInfo.Preview::contentId)
-                .toList();
-
-            List<RecommenderInfo.Preview> randomPreviews = queryFactory
-                .select(
-                    Projections.constructor(
-                        RecommenderInfo.Preview.class,
-                        contentEntity.id,
-                        contentEntity.title,
-                        contentEntity.s3Url,
-                        contentEntity.contentType,
-                        contentEntity.category.name,
-                        contentEntity.contentLevel,
-                        getIsPointRequiredByUserIdAndContent(userId, contentEntity.id, contentEntity.createdAt)
-                    )
-                )
-                .from(contentEntity)
-                .where(contentEntity.id.notIn(selectedContentIds)) // 이미 선택된 콘텐츠 제외
-                .groupBy(contentEntity.id)
-                .orderBy(contentEntity.hits.desc())
-                .limit(9 - previews.size())
-                .fetch();
-
-            previews.addAll(randomPreviews);
-        }
-
-        return previews;
     }
 
-    // 추천 카테고리가 하나도 없을 때 조회수 순으로 9개 조회
-    public List<RecommenderInfo.Preview> findContentsOrderByHits(Long userId) {
+    // Content Id를 조회수 순으로 최대 limit 만큼 조회하는 쿼리
+    public List<Long> findPopularContentIdsWithLimit(int limit) {
+        return queryFactory
+            .select(contentEntity.id)
+            .from(contentEntity)
+            .where(contentEntity.contentStatus.eq(ContentStatus.ACTIVATED))
+            .orderBy(contentEntity.hits.desc())
+            .limit(limit)
+            .fetch();
+    }
+
+    // 추천된 Content 조회하는 쿼리
+    public List<RecommenderInfo.Preview> findRecommendedContentsIn(Long userId, Set<Long> contentIds) {
         return queryFactory
             .select(
                 Projections.constructor(
@@ -288,8 +229,8 @@ public class ContentCustomRepository {
                 )
             )
             .from(contentEntity)
-            .orderBy(contentEntity.hits.desc())
-            .limit(9)
+            .where(contentEntity.id.in(contentIds))
+            .orderBy(contentEntity.id.desc())
             .fetch();
     }
 

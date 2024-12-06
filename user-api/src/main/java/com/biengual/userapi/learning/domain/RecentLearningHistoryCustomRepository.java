@@ -1,17 +1,6 @@
 package com.biengual.userapi.learning.domain;
 
-import static com.biengual.core.domain.entity.content.QContentEntity.*;
-import static com.biengual.core.domain.entity.learning.QRecentLearningHistoryEntity.*;
-import static com.biengual.core.domain.entity.scrap.QScrapEntity.*;
-
-import java.time.LocalDateTime;
-import java.time.YearMonth;
-import java.util.List;
-import java.util.Optional;
-
-import org.springframework.stereotype.Repository;
-
-import com.biengual.core.util.PeriodUtil;
+import com.biengual.core.enums.ContentStatus;
 import com.biengual.userapi.content.domain.ContentInfo;
 import com.biengual.userapi.dashboard.domain.DashboardInfo;
 import com.querydsl.core.types.Expression;
@@ -19,8 +8,16 @@ import com.querydsl.core.types.Projections;
 import com.querydsl.core.types.dsl.Expressions;
 import com.querydsl.jpa.JPAExpressions;
 import com.querydsl.jpa.impl.JPAQueryFactory;
-
 import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Repository;
+
+import java.util.List;
+import java.util.Optional;
+
+import static com.biengual.core.constant.RestrictionConstant.LEARNING_COMPLETION_RATE_THRESHOLD;
+import static com.biengual.core.domain.entity.content.QContentEntity.contentEntity;
+import static com.biengual.core.domain.entity.learning.QRecentLearningHistoryEntity.recentLearningHistoryEntity;
+import static com.biengual.core.domain.entity.scrap.QScrapEntity.scrapEntity;
 
 @Repository
 @RequiredArgsConstructor
@@ -92,22 +89,34 @@ public class RecentLearningHistoryCustomRepository {
             .orderBy(recentLearningHistoryEntity.recentLearningTime.desc())
             .fetch();
     }
-    public List<Long> findRecentlyFrequentCategoryIds(Long userId){
-        LocalDateTime startOfMonth = PeriodUtil.getStartOfMonth(YearMonth.now());
-        LocalDateTime endOfMonth = PeriodUtil.getEndOfMonth(YearMonth.now());
 
+    // 자신이 학습 완료했던 Content Id를 조회하는 쿼리
+    public List<Long> findLearningCompletionContentIdsByUserId(Long userId) {
         return queryFactory
-            .select(contentEntity.category.id)
+            .select(recentLearningHistoryEntity.contentId)
             .from(recentLearningHistoryEntity)
-            .innerJoin(contentEntity)
-            .on(recentLearningHistoryEntity.contentId.eq(contentEntity.id))
             .where(
                 recentLearningHistoryEntity.userId.eq(userId)
-                    .and(recentLearningHistoryEntity.recentLearningTime.between(startOfMonth, endOfMonth))
+                    .and(recentLearningHistoryEntity.completedLearningRate.goe(LEARNING_COMPLETION_RATE_THRESHOLD))
             )
-            .groupBy(contentEntity.category.id)
-            .orderBy(contentEntity.category.count().desc())
-            .limit(3)
+            .fetch();
+    }
+
+    // 추천할 Content Id를 최대 limit만큼 조회하는 쿼리
+    public List<Long> findRecommendedContentIdsWithLimit(List<Long> userIds, List<Long> contentIds, int limit) {
+        return queryFactory
+            .select(recentLearningHistoryEntity.contentId)
+            .from(recentLearningHistoryEntity)
+            .join(contentEntity)
+            .on(recentLearningHistoryEntity.contentId.eq(contentEntity.id))
+            .where(
+                recentLearningHistoryEntity.userId.in(userIds)
+                    .and(recentLearningHistoryEntity.contentId.notIn(contentIds))
+                    .and(contentEntity.contentStatus.eq(ContentStatus.ACTIVATED))
+            )
+            .orderBy(recentLearningHistoryEntity.completedLearningRate.desc(),
+                recentLearningHistoryEntity.currentLearningRate.desc())
+            .limit(limit)
             .fetch();
     }
 

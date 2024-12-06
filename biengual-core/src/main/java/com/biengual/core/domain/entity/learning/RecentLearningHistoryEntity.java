@@ -28,6 +28,7 @@ public class RecentLearningHistoryEntity extends BaseEntity {
     @Column(nullable = false, precision = 5, scale = 2)
     private BigDecimal currentLearningRate;
 
+    // 해당 컨텐츠에 대하여 최대로 학습한 학습률
     @Column(nullable = false, precision = 5, scale = 2)
     private BigDecimal completedLearningRate;
 

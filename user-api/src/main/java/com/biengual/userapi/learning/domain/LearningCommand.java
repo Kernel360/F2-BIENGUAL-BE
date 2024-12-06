@@ -3,9 +3,7 @@ package com.biengual.userapi.learning.domain;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
-import com.biengual.core.domain.entity.learning.CategoryLearningHistoryEntity;
-import com.biengual.core.domain.entity.learning.LearningHistoryEntity;
-import com.biengual.core.domain.entity.learning.RecentLearningHistoryEntity;
+import com.biengual.core.domain.entity.learning.*;
 
 import lombok.Builder;
 
@@ -43,6 +41,16 @@ public class LearningCommand {
                 .contentId(this.contentId)
                 .categoryId(categoryId)
                 .learningTime(this.learningTime)
+                .build();
+        }
+
+        public CategoryLearningProgressEntity toCategoryLearningProgressEntity(
+            CategoryLearningProgressId categoryLearningProgressId
+        ) {
+            return CategoryLearningProgressEntity.builder()
+                .categoryLearningProgressId(categoryLearningProgressId)
+                .totalLearningCount(0L)
+                .completedLearningCount(0L)
                 .build();
         }
     }
